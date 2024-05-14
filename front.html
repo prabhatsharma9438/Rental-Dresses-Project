@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Cards</title>
+    <style>
+        .productCards {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+        }
+
+        .productCard {
+            width: calc(33.33% - 20px); /* 33.33% width for each card with some margin */
+            margin-bottom: 20px; /* Adjust margin as needed */
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            box-sizing: border-box;
+        }
+
+        .productCard img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .productCard p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .productAvailability.available {
+            color: green;
+        }
+
+        .productAvailability.rented {
+            color: red;
+        }
+
+        .sort {
+    display: flex;
+    align-items: center; /* Vertically center elements */
+}
+
+#location {
+    height: 20px;
+    margin-left: 10px; /* Add some margin for spacing */
+}
+
+.uplbtn{
+    background-color:#ccb42c;
+}
+
+.uptbtn{
+    background-color:#dd381b;
+}
+    </style>
+</head>
+<body>
+    <div class="sort">
+        <p>sort by</p>
+        <select name="city" id="location">
+            
+        </select>
+    </div>
+    
+    <div id="productCards" class="productCards">
+        <!-- Product Cards will be dynamically added here -->
+    </div>
+    <script src="city.js"></script>
+    <script type="module">
+        
+    // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase ,set, get , ref, child, onValue,onChildRemoved ,remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+        import { getStorage, ref as sref, getDownloadURL ,deleteObject  } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+      
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyB4_rUnz_F2hoMrohtzjFuc94YlAv0O1iM",
+          authDomain: "rentel-dresses.firebaseapp.com",
+          databaseURL: "https://rentel-dresses-default-rtdb.firebaseio.com",
+          projectId: "rentel-dresses",
+          storageBucket: "gs://rentel-dresses.appspot.com",
+          messagingSenderId: "675668731969",
+          appId: "1:675668731969:web:9cbb9fb54e484acc1d7ec0"
+        };
+
+        const names = countryList['Madhya_Pradesh_Cities'];
+        //console.log(names);
+        for(let idx in names){
+            const option = document.createElement('option');
+            option.value = names[idx];
+            option.text = names[idx];
+            document.getElementById('location').appendChild(option);
+        }
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const storage = getStorage();
+        //sref(storage , 'images/'+productImageName) 
+        const user = getAuth(app);       
+        //console.log("before");
+        
+        //on change sorting
+        document.getElementById('location').addEventListener('change',function(){
+        const selected_location = document.getElementById('location').value;
+        //console.log(selected_location);
+        user.onAuthStateChanged(async (user) => {
+                //console.log( "sadasdas = "+localStorage.getItem(user.uid) );
+                const key = user.uid+'1';
+
+                localStorage.setItem(key , selected_location);
+                sort();
+            });
+         // Call the sort function
+    });
+
+        document.addEventListener('DOMContentLoaded', function(){    
+            
+            user.onAuthStateChanged(async (user) => {
+                //console.log( "sadasdas = "+localStorage.getItem(user.uid) );
+                const key = user.uid+'1';
+                if(localStorage.getItem(user.uid) !== 'true'){
+                    localStorage.setItem(key, 'All');
+                    console.log("how many times "+localStorage.getItem(user.uid));
+                    localStorage.setItem(user.uid, true);
+                    console.log(localStorage.getItem(user.uid));
+                }
+                else{
+                    const prevSelected = localStorage.getItem(key);
+
+                    if (prevSelected) {
+                        //console.log("previous = "+prevSelected);
+                        const locationDropdown = document.getElementById('location');
+                        //console.log(locationDropdown);
+                        // Set the selectedIndex based on the value from local storage
+                        const selectedIdx = Array.from(locationDropdown.options).findIndex(option => option.value === prevSelected);
+                        //console.log(selectedIdx);
+                        if (selectedIdx !== -1) {
+                            locationDropdown.selectedIndex = selectedIdx;
+                            //console.log(document.getElementById('location').value);
+                        }
+                    }
+                }
+                sort();
+            });
+
+        });
+
+        //console.log("after");
+        function sort(){
+            //console.log("sorted");
+            // Reference to the products node in the database
+            const productCardsContainer = document.getElementById('productCards');
+            productCardsContainer.innerHTML = '';
+            //get selected option
+            const selected = document.getElementById('location').value;
+            //console.log(selected+" who");
+            const productsRef = ref(database, 'products');
+            
+            // Retrieve the available products from the database
+            get(productsRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const productData = snapshot.val();
+                    //console.log(productData);
+                    // Filter available products
+                    const availableProducts = Object.values(productData).filter(product => product);
+                    //console.log(availableProducts);
+                    // Display available products dynamically in cards
+                    //const productCardsContainer = document.getElementById('productCards');
+                    availableProducts.forEach(product => {
+                        const card = document.createElement('div');
+                        card.classList.add('productCard');
+                        // Product image
+                        const image = document.createElement('img');
+                        // console.log(product.key);
+                        getDownloadURL( sref(storage , 'images/'+product.productImage) ).then(
+                            (url)=>{
+                                // url is the download URL for 'images/stars.jpg'
+                                // This can be downloaded directly:
+                                // const xhr = new XMLHttpRequest();
+                                // xhr.responseType = 'blob';
+                                // xhr.onload = (event) => {
+                                    //     const blob = xhr.response;
+                                    // };
+                                    // xhr.open('GET', url);
+                                    // xhr.send();
+                                    // Or inserted into an <img> element
+                                    const img = document.getElementById('myimg');
+                                    image.setAttribute('src', url);
+                                    image.style.height = "300px";
+                                } ).catch((error) => {
+                                    // Handle any errors
+                                });
+                                card.appendChild(image);
+                                // Owner name
+                                const ownerName = document.createElement('p');
+                                ownerName.textContent = 'Owner: ' + product.ownerName;
+                                card.appendChild(ownerName);
+                                // Price
+                                const price = document.createElement('p');
+                                price.textContent = 'Price: ₹' + product.productPrice;
+                                card.appendChild(price);
+                                // Availability
+                                const availability = document.createElement('p');
+                                availability.classList.add('productAvailability', product.availability);
+                                availability.textContent = 'Availability: ' + (product.availability === 'available' ? 'Available' : 'Rented');
+                                card.appendChild(availability);
+
+            // Contact number
+            const contactNumber = document.createElement('p');
+            contactNumber.textContent = 'Contact: ' + product.contactNo;
+            card.appendChild(contactNumber);
+
+            // Location
+            const location = document.createElement('p');
+            location.textContent = 'Location: ' + product.productLocation;
+            card.appendChild(location);
+
+            // Create update button
+    const updateButton = document.createElement('button');
+    updateButton.textContent = 'Update';
+    updateButton.classList = 'uplbtn';
+    updateButton.addEventListener('click', () => {
+        // Implement update functionality here
+        user.onAuthStateChanged(async (user) => {
+            if(product.UserId == user.uid){
+                window.location.href = 'productUpdate.html?key='+product.key + '&old_image=' + product.productImage;
+            }
+            else{
+                alert("product does not belongs to you");
+            }
+        });
+        
+    });
+    card.appendChild(updateButton);
+    //console.log(product.key);
+
+
+    // Create delete button
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = 'Delete';
+    deleteButton.classList = 'uptbtn';
+    deleteButton.addEventListener('click', () => {
+        // Implement delete functionality here
+        user.onAuthStateChanged(async (user) => {
+            if(product.UserId == user.uid){
+                const img_to_delete = sref(storage , 'images/'+product.productImage);
+
+                deleteObject(img_to_delete).then( ()=>{
+                    //alert(product.productImage+"image deleted");
+                } ).catch( (error)=>{
+                    alert(error);
+                } )
+
+                //console.log("product"+product.UserId+"user="+user.uid);
+                const commentsRef = ref(database  , 'products/'+product.key);
+        remove(commentsRef);
+        sort();
+            }
+            else{
+                alert("product does not belongs to you");
+            }
+        });
+        
+        
+    });
+
+
+    card.appendChild(deleteButton);
+
+            //console.log(selected + ` ${product.productLocation}`);
+            if(selected === product.productLocation || selected === 'All'){
+                productCardsContainer.appendChild(card);
+                //console.log(product.key+selected);
+            }
+        });
+    } else {
+        alert("no products yet");
+        console.log('No available products found.');
+    }
+}).catch((error) => {
+    console.error('Error retrieving product data:', error);
+});
+    }
+         
+      </script>
+    
+</body>
+</html>

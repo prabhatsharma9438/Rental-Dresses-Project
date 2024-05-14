@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <style>
+        /* CSS styles for navigation */
+        body{
+            background :  url(Image/img31.jpg) ;
+            background-repeat : no-repeat;
+                background-attachment : fixed ;
+                font-family : sans-serif;
+        }
+        header {
+            background-color: #2691d9;
+            color: #fff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav ul li {
+            display: inline;
+            margin-right: 20px;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        /* CSS styles for logo */
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        /* CSS styles for logout button */
+        .logout {
+            background-color: #fff;
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .logout:hover {
+            background-color: #ccc;
+        }
+
+        /* Main content styles */
+        main {
+            padding: 20px;
+        }
+
+        /* Placeholder styles for other sections */
+        section {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .imgl{
+            height: 60px;
+        }
+
+        #welcome{
+            text-align: left;
+        }
+
+        .about-1 {
+        margin: 15px;
+        padding: 5px;
+    }
+
+    .about-1 h1 {
+        text-align: center;
+        color:white;
+        font-size:30px;
+        font-family:Algerian;
+    }
+
+    .about-1 p {
+        text-align: center;
+        padding: 3px;
+        color:white;
+        font-weight: bold;
+        font-size:19px;
+    }
+    </style>
+</head>
+<body>
+
+    <!-- Header with navigation and logo -->
+    <header>
+        <div class="logo" id="logo">Rent & Run</div>
+        <nav>
+            <ul>
+                <li><a href="front.html">Products</a></li>
+                <li><a href="productUpload.html">Upload Products</a></li>
+                <li><a href="Aboutus.html">About Us</a></li>
+                <li><a href="Contactus.html">Contact Us</a></li>
+            </ul>
+        </nav>
+        <button class="logout" id="logout">Log Out</button>
+    </header>
+
+    <!-- Main content -->
+    <main>
+        <h1 id="welcome" ></h1>
+        <div class="about-1">
+            <h1><u>Welcome to our Website</u></h1>
+            <p id="para">Rent and Run is a platform that offers premium fashion rental services at delightful prices. It is also a
+                platform where you can make money. Be it weddings, brunch parties, pre-wedding shoots, or themed fashion
+                shows - rent your choice and say goodbye to month-long waiting for sales and discounts on your favorite
+                designer dresses
+                .You can make money by providing your heavy and expensive dresses which you wore once or twice and get
+                bored of it to the renter or to the person who needs that particular designer dress. From Bridal
+                lehengas to party wears, designer lehengas to gowns; and blazers to many other modish outfits, R&R will
+                provide a platform where you can give them on rent and take them on rent without burning a hole through
+                your pockets
+
+                So if you wish to look your best on your next occasion and want to make money from your personal
+                wardrobe and experience the suave taste of our fashion industry, hop straight to Rent And Run and we
+                will do the rest!
+                FROM NOW ON, YOU WILL NEVER HAVE TO REPEAT CLOTHES !</p>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import {getAuth} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        
+        const firebaseConfig = {
+          apiKey: "AIzaSyB4_rUnz_F2hoMrohtzjFuc94YlAv0O1iM",
+          authDomain: "rentel-dresses.firebaseapp.com",
+          databaseURL: "https://rentel-dresses-default-rtdb.firebaseio.com",
+          projectId: "rentel-dresses",
+          storageBucket: "gs://rentel-dresses.appspot.com",
+          messagingSenderId: "675668731969",
+          appId: "1:675668731969:web:9cbb9fb54e484acc1d7ec0"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const user = getAuth(app);
+
+        const btn = document.getElementById('logout');
+        btn.addEventListener('click', ()=>{
+            user.onAuthStateChanged( async (user) => {
+                const key = user.uid+'1';
+                //console.log(key);
+                localStorage.setItem(key , 'All');
+                window.location.href = 'login.html'
+            } );
+            
+        } )
+
+        // const colors = ['yellow','orange','blue',"white"];
+
+        // const para = document.getElementById('logo');
+        // count = 0;
+        // setInterval( ()=>{
+        //     para.style.color = colors[count%4];
+        //     count++;
+        // }, 500)
+    </script>
+</body>
+</html>

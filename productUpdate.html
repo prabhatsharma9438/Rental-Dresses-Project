@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Update Page</title>
+    <!-- Include Firebase SDK -->
+    <style>
+        /* Styles for the upload form */
+        .uploadBtn {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    background-color: #ccb42c;
+    color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.hidden {
+    display: none;
+}
+
+#uploadForm {
+    max-width: 400px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+#uploadForm input,
+#uploadForm select {
+    width: calc(100% - 20px); /* Adjusting width to account for padding */
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    box-sizing: border-box;
+    height: 40px; /* Set a fixed height */
+}
+
+#uploadForm button {
+    width: 100%;
+    padding: 10px;
+    background-color: #ccb42c;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#uploadForm button:hover {
+    background-color: #fad70e;
+}
+
+/* Styles for product cards */
+#productCards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.productCard {
+    width: 300px;
+    margin: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.productCard img {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 10px;
+}
+
+.productCard p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/8.3.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.3.2/firebase-database.js"></script>
+    <script src="city.js"></script>
+</head>
+
+<body>
+    <button id="uploadBtn" class="uploadBtn">Update Product</button>
+
+    <!-- Form for uploading product   <input type="text" id="productLocation" placeholder="Location" required>  -->
+    <div id="uploadForm" style="display: none;">
+        <form id="productForm">
+            <input type="file" id="productImage" required><br>
+            <input type="text" id="ownerName" placeholder="Owner's Name" required><br>
+            <input type="tel" id="contactNo" placeholder="Contact No." title="Please enter a 10-digit numeric phone number" required minlength="10" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            <input type="number" id="productPrice" placeholder="Price" required><br>
+            <select id="availability" required>
+                <option value="available">Available</option>
+                <option value="rented">Rented</option>
+            </select><br>
+            <select name="city" id="productLocation" required></select><br>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    <!-- Container for showing product cards -->
+    <div id="productCards"></div>
+
+    <!-- Include Firebase SDK -->
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase ,set, get , ref, onChildChanged,update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+        import { getStorage, ref as sref, uploadBytes,deleteObject } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+      
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyB4_rUnz_F2hoMrohtzjFuc94YlAv0O1iM",
+          authDomain: "rentel-dresses.firebaseapp.com",
+          databaseURL: "https://rentel-dresses-default-rtdb.firebaseio.com",
+          projectId: "rentel-dresses",
+          storageBucket: "gs://rentel-dresses.appspot.com",
+          messagingSenderId: "675668731969",
+          appId: "1:675668731969:web:9cbb9fb54e484acc1d7ec0"
+        };
+      
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const storage = getStorage(app);
+        const user = getAuth(app);
+        
+        //get update key via url
+        const urlParams = new URLSearchParams(window.location.search);
+        const productKey = urlParams.get('key');
+        const old_image = urlParams.get('old_image');
+        //console.log(productKey);
+        
+
+        // const selectCity = document.getElementsByName('city');
+        // console.log(selectCity);
+
+        const names = countryList['Madhya_Pradesh_Cities'];
+        //console.log(names);
+        for(let cityname in names){
+            const option = document.createElement('option');
+
+            option.value = names[cityname];
+            option.text = names[cityname];
+            document.getElementById('productLocation').appendChild(option);
+        }
+        
+// Show upload form when button clicked
+const uploadBtn = document.getElementById('uploadBtn');
+const uploadForm = document.getElementById('uploadForm');
+uploadBtn.addEventListener('click', () => {
+    uploadForm.style.display = 'block';
+    uploadBtn.classList.add('hidden');
+
+    user.onAuthStateChanged((user)=>{
+        const path_for_name = ref(database,'UsersAuthList/' + user.uid);
+        //console.log('UsersAuthList/' + user.uid);
+        get(path_for_name).then( (snapshot)=>{
+            if ( snapshot.exists() ) {
+                //console.log( snapshot.val() );
+                const owner_name = document.getElementById('ownerName');
+                const name = (`${snapshot.val().firstname} ${snapshot.val().lastname}`);
+                //console.log(name);
+                owner_name.value = name;
+                uploadForm.style.display = 'block';
+            }
+        } )
+        
+        const product_path = ref(database , 'products');
+        const image = document.getElementById('productImage');
+        const contact = document.getElementById('contactNo');
+        const price = document.getElementById('productPrice');
+
+        get(product_path).then( (snapshot)=>{
+            if(snapshot.exists()){
+                //console.log("products "+ snapshot.val());
+                const productData =  snapshot.val();
+                const availableProducts = Object.values(productData).filter(product => product);
+                //console.log(availableProducts);
+                availableProducts.forEach( (product)=>{
+                    if(product.key === productKey){
+                        //console.log(product.key +" "+productKey)
+                        contact.value = product.contactNo;
+                        price.value = product.productPrice;
+                        
+                    }
+                } );
+            }
+        } )
+
+    });
+
+    
+});
+
+// Handle form submission
+const productForm = document.getElementById('productForm');
+productForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    //old image delete
+    console.log("link is ="+old_image);
+    const img_to_delete = await sref(storage , 'images/'+old_image);
+
+                deleteObject(img_to_delete).then( ()=>{
+                    //alert(product.productImage+"image deleted");
+                } ).catch( (error)=>{
+                    alert(error);
+                } )
+    // Get form values
+    const productImage = document.getElementById('productImage').files[0];
+    const productImageName = document.getElementById('productImage').value;
+    const storageRef = await sref(storage , 'images/'+productImageName);
+
+    await uploadBytes(storageRef, productImage).then( (snapshot) => {
+        console.log('Uploaded a blob or file!');
+    } )
+
+
+    const ownerName = document.getElementById('ownerName').value;
+    const contactNo = document.getElementById('contactNo').value;
+    const productPrice = document.getElementById('productPrice').value;
+    const availability = document.getElementById('availability').value;
+    const productLocation = document.getElementById('productLocation').value;
+    //ref(db , 'UsersAuthList/' + credentials.user.uid )
+    user.onAuthStateChanged(async (user) => {
+            if (user) {
+                // User is signed in, see docs for a list of available properties
+                // https://firebase.google.com/docs/reference/js/v8/firebase.User
+
+                const path = ref(database,'products/'+productKey);
+                console.log('products/'+productKey);
+
+                await update( path ,{
+            ownerName :ownerName,
+            productPrice :productPrice,
+            availability :availability,
+            contactNo :contactNo,
+            productLocation : productLocation,
+            productImage : productImageName,
+    } )
+                // ...
+            } else {
+                // User is signed out
+                // ...
+            }
+});
+
+
+        
+    alert("updated");
+    // Reset form
+    productForm.reset();
+    uploadBtn.classList.remove('hidden');
+    uploadForm.style.display = 'none';
+});
+
+      </script>
+    
+</body>
+</html>
